@@ -1,0 +1,28 @@
+@import "tailwindcss";
+@keyframes neonGlow {
+  0% {
+    box-shadow:
+      0 0 10px rgba(168, 85, 247, 0.6),
+      0 0 20px rgba(168, 85, 247, 0.4),
+      0 0 30px rgba(168, 85, 247, 0.2);
+  }
+  100% {
+    box-shadow:
+      0 0 20px rgba(168, 85, 247, 1),
+      0 0 35px rgba(168, 85, 247, 0.7),
+      0 0 50px rgba(168, 85, 247, 0.5);
+  }
+}
+
+.animate-neonGlow {
+  animation: neonGlow 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes floating {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-6px); }
+}
+
+.animate-floating {
+  animation: floating 3s ease-in-out infinite alternate;
+}
