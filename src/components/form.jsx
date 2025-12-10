@@ -9,39 +9,47 @@ export default function Form() {
 
   const navigate = useNavigate();
 
-  const handleSave = () => {
-    if (!title.trim()) {
-      alert("Please enter a form title");
-      return;
-    }
+  const handleSave = async () => {
+  if (!title.trim()) {
+    alert("Please enter a form title");
+    return;
+  }
 
-    if (questionsToAsk > totalQuestions) {
-      alert("Questions to ask cannot be more than total questions");
-      return;
-    }
+  if (questionsToAsk > totalQuestions) {
+    alert("Questions to ask cannot be more than total questions");
+    return;
+  }
 
-    if (totalQuestions < 1 || questionsToAsk < 1) {
-      alert("Questions must be at least 1");
-      return;
-    }
+  // Generate 6-digit ID
+  const form_id = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    const newForm = {
-      title,
-      description,
-      totalQuestions,
-      questionsToAsk,
-      createdAt: new Date().toLocaleString(),
-    };
-
-    // Save to localStorage
-    const existingForms = JSON.parse(localStorage.getItem("forms")) || [];
-    existingForms.push(newForm);
-    localStorage.setItem("forms", JSON.stringify(existingForms));
-
-    // Redirect to Homepage
-    navigate("/");
-    console.log("Form saved:", newForm);
+  const formData = {
+    form_id,
+    title,
+    description,
+    totalQuestions,
+    questionsToAsk,
+    questions: []  // We add actual questions in next page
   };
+
+  const res = await fetch("http://localhost:5000/forms", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(formData)
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert("Error creating form");
+    return;
+  }
+
+  alert("Form created! Now add questions.");
+
+  navigate(`/form/${form_id}/questions`);
+};
+
 
   return (
     

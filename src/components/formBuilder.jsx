@@ -1,33 +1,59 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function FormBuilder() {
   const { id } = useParams();
-  const [formData, setFormData] = useState(() => {
-    if (id) {
-      const forms = JSON.parse(localStorage.getItem("forms")) || [];
-      const form = forms[id];
-      return form || {
-        title: "",
-        description: "",
-        questions: [],
-        createdAt: new Date().toLocaleString(),
-      };
-    }
-    return {
-      title: "",
-      description: "",
-      questions: [],
-      createdAt: new Date().toLocaleString(),
-    };
+  const navigate = useNavigate();
+  
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    questions: [],
+    createdAt: new Date().toLocaleString(),
   });
+  
+  const [loading, setLoading] = useState(id ? true : false);
+
+  useEffect(() => {
+    if (id) {
+      const fetchForm = async () => {
+        try {
+          const res = await fetch(`http://localhost:5000/forms/${id}`);
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          const data = await res.json();
+          
+          if (data.error) {
+            alert("Form not found");
+            navigate("/");
+            return;
+          }
+          
+          setFormData({
+            form_id: data.form_id,
+            title: data.title,
+            description: data.description,
+            questions: data.questions || [],
+            createdAt: new Date(data.created_at).toLocaleString(),
+          });
+        } catch (err) {
+          console.error("Error loading form:", err);
+          alert("Error loading form: " + err.message);
+          navigate("/");
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchForm();
+    } else {
+      setLoading(false);
+    }
+  }, [id, navigate]);
 
   const [currentQuestionText, setCurrentQuestionText] = useState("");
   const [currentQuestionType, setCurrentQuestionType] = useState("shortAnswer");
   const [currentQuestionRequired, setCurrentQuestionRequired] = useState(false);
   const [currentOptions, setCurrentOptions] = useState("");
-
-  const navigate = useNavigate();
 
   const addQuestion = () => {
     if (!currentQuestionText.trim()) {
@@ -75,34 +101,54 @@ export default function FormBuilder() {
       return;
     }
 
-    const formsData = JSON.parse(localStorage.getItem("forms")) || [];
-    const formWithResponses = {
-      ...formData,
-      responses: [],
-      id: id || Date.now(),
+    // Generate unique form ID if creating new
+    const form_id = formData.form_id || Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    const payload = {
+      form_id,
+      title: formData.title,
+      description: formData.description,
+      questions: formData.questions,
     };
 
-    if (id) {
-      formsData[id] = formWithResponses;
-    } else {
-      formsData.push(formWithResponses);
-    }
+    const method = formData.form_id ? "PUT" : "POST";
+    const url = formData.form_id 
+      ? `http://localhost:5000/forms/${form_id}`
+      : "http://localhost:5000/forms";
 
-    localStorage.setItem("forms", JSON.stringify(formsData));
-    alert("Form saved successfully!");
-    navigate("/");
+    fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then((res) => res.json())
+      .then((result) => {
+        if (result.error) {
+          alert("Error: " + result.error);
+        } else {
+          alert(formData.form_id ? "Form updated!" : "Form created!");
+          navigate("/");
+        }
+      })
+      .catch((err) => {
+        console.error("Error saving form:", err);
+        alert("Error saving form. Check console for details.");
+      });
   };
 
   return (
     <div className="relative w-full min-h-screen flex items-center justify-center mt-10 mb-10 px-4">
       <div className="fixed inset-0 -z-10 w-full h-full bg-fixed [background:radial-gradient(125%_125%_at_50%_10%,#000_40%,#63e_100%)]"></div>
 
-      <div className="max-w-4xl w-full p-10 bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-[0_0_30px_rgba(168,85,247,0.3)]">
-        <div className="absolute inset-0 rounded-3xl border-[3px] pointer-events-none border-transparent animate-neonGlow"></div>
+      {loading ? (
+        <div className="text-white text-xl">Loading form...</div>
+      ) : (
+        <div className="max-w-4xl w-full p-10 bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-[0_0_30px_rgba(168,85,247,0.3)]">
+          <div className="absolute inset-0 rounded-3xl border-[3px] pointer-events-none border-transparent animate-neonGlow"></div>
 
-        <h1 className="text-3xl font-bold text-white mb-8 text-center drop-shadow-lg">
-          {id ? "Edit Form" : "Create a New Form"}
-        </h1>
+          <h1 className="text-3xl font-bold text-white mb-8 text-center drop-shadow-lg">
+            {formData.form_id ? "Edit Form" : "Create a New Form"}
+          </h1>
 
         {/* Form Title & Description */}
         <div className="mb-6">
@@ -236,7 +282,8 @@ export default function FormBuilder() {
             Cancel
           </button>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

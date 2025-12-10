@@ -9,33 +9,34 @@ export default function FormSubmit() {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const forms = JSON.parse(localStorage.getItem("forms")) || [];
-    
-    // Try parsing as number first
-    const id = parseInt(formId);
-    let foundForm = null;
-
-    // Search by id or index
-    if (id || id === 0) {
-      for (let i = 0; i < forms.length; i++) {
-        if (forms[i].id === id || i === id) {
-          foundForm = { ...forms[i], index: i };
-          break;
+    const fetchForm = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/forms/${formId}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        
+        if (data.error) {
+          alert("Form not found");
+          navigate("/");
+          return;
         }
+        
+        setForm(data);
+        // Initialize responses object
+        const initialResponses = {};
+        (data.questions || []).forEach((q) => {
+          initialResponses[q.id] = q.type === "checkbox" ? [] : "";
+        });
+        setResponses(initialResponses);
+      } catch (err) {
+        console.error("Error loading form:", err);
+        alert("Error loading form: " + err.message);
+        navigate("/");
       }
-    }
-
-    if (foundForm) {
-      setForm(foundForm);
-      // Initialize responses object
-      const initialResponses = {};
-      foundForm.questions.forEach((q) => {
-        initialResponses[q.id] = q.type === "checkbox" ? [] : "";
-      });
-      setResponses(initialResponses);
-    } else {
-      alert("Form not found");
-      navigate("/");
+    };
+    
+    if (formId) {
+      fetchForm();
     }
   }, [formId, navigate]);
 
@@ -71,24 +72,25 @@ export default function FormSubmit() {
       }
     }
 
-    // Save response
-    const forms = JSON.parse(localStorage.getItem("forms")) || [];
-    const response = {
-      id: Date.now(),
-      timestamp: new Date().toLocaleString(),
-      answers: responses,
-    };
-
-    if (form && form.index !== undefined) {
-      if (!forms[form.index].responses) {
-        forms[form.index].responses = [];
-      }
-      forms[form.index].responses.push(response);
-      localStorage.setItem("forms", JSON.stringify(forms));
-    }
-
-    setSubmitted(true);
-    setTimeout(() => navigate("/"), 2000);
+    // Submit response to backend
+    fetch(`http://localhost:5000/forms/${form.form_id}/responses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers: responses }),
+    })
+      .then(res => res.json())
+      .then(result => {
+        if (result.error) {
+          alert("Error: " + result.error);
+        } else {
+          setSubmitted(true);
+          setTimeout(() => navigate("/"), 2000);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Error submitting form");
+      });
   };
 
   if (!form) {
