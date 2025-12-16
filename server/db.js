@@ -1,13 +1,10 @@
 const mysql = require("mysql2");
 
-const db = mysql.createPool({
+const db = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "1234",
-  database: "whisperbox",
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
+  database: "whisperbox"
 });
 
 // Create database if it doesn't exist
@@ -32,12 +29,11 @@ tempConnection.connect((err) => {
   });
 });
 
-db.getConnection((err, connection) => {
+db.connect((err) => {
   if (err) {
     console.error("MySQL Connection Error:", err);
   } else {
     console.log("MySQL Connected!");
-    connection.release();
   }
 });
 

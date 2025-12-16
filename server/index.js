@@ -259,7 +259,7 @@ app.get("/forms/:form_id/responses", (req, res) => {
   const form_id = req.params.form_id;
 
   db.query(
-    "SELECT DISTINCT response_set_id FROM responses WHERE form_id = ? ORDER BY created_at DESC",
+    "SELECT response_set_id, MAX(created_at) as created_at FROM responses WHERE form_id = ? GROUP BY response_set_id ORDER BY created_at DESC",
     [form_id],
     (err, responseSets) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -281,12 +281,12 @@ app.get("/forms/:form_id/responses", (req, res) => {
             } else {
               const answersObj = {};
               responses.forEach(r => {
-                answersObj[r.question_id] = r.answer;
+                answersObj[Number(r.question_id)] = r.answer;
               });
               allResponses.push({
                 response_set_id: rs.response_set_id,
                 answers: answersObj,
-                created_at: responses[0]?.created_at || new Date()
+                created_at: rs.created_at
               });
             }
 

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "../App.css";
 import reviews from "../assets/reviews.svg";
 import review2 from "../assets/review2.svg";
@@ -8,11 +8,15 @@ import Testimonials from "./testimonials";
 export default function Body() {
   const formsRef = useRef(null);
   const [scrollY, setScrollY] = useState(0);
+  const navigate = useNavigate();
 
   // FORMS STORAGE
   const [forms, setForms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // FEEDBACK FORM STATE
+  const [feedbackFormId, setFeedbackFormId] = useState('');
 
   useEffect(() => {
     const fetchForms = async () => {
@@ -46,6 +50,15 @@ export default function Body() {
   const scrollToForms = () => {
     formsRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Handle feedback submission
+  const handleFeedbackSubmit = (e) => {
+    e.preventDefault();
+    if (feedbackFormId.trim()) {
+      navigate(`/form/submit/${feedbackFormId.trim()}`);
+    }
+  };
+
   console.log(forms);
 
   return (
@@ -277,6 +290,9 @@ export default function Body() {
             >
               <h3 className="text-xl font-semibold mb-2">{form.title}</h3>
               <p className="text-white/70 mb-2 text-sm">{form.description}</p>
+              <p className="text-white/60 text-xs mb-2">
+                Form ID: {form.form_id}
+              </p>
               <p className="text-white/60 text-xs mb-4">
                 Questions: {form.questions?.length || 0}
               </p>
@@ -340,6 +356,30 @@ export default function Body() {
         >
           + Create New Form
         </Link>
+      </div>
+
+      {/* GIVE FEEDBACK SECTION */}
+      <div className="relative mx-auto max-w-2xl text-center mb-20 p-8 bg-white/10 backdrop-blur-lg rounded-2xl shadow-lg border border-white/20 mt-10">
+        <h2 className="text-3xl font-semibold text-white mb-6">Give Feedback</h2>
+        <p className="text-white/80 mb-6">Enter a form ID to provide your feedback anonymously.</p>
+        <form onSubmit={handleFeedbackSubmit} className="space-y-4">
+          <div className="max-w-md mx-auto">
+            <input
+              type="text"
+              value={feedbackFormId}
+              onChange={(e) => setFeedbackFormId(e.target.value)}
+              className="w-full px-4 py-3 bg-white/20 text-white placeholder-white/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 border border-white/30"
+              placeholder="Enter Form ID"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="px-8 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-lg transition-all font-semibold"
+          >
+            Submit Feedback
+          </button>
+        </form>
       </div>
 
     </div>
